@@ -1,5 +1,15 @@
 const global = {
   currentPage: window.location.pathname,
+  search: {
+    term: '',
+    type: '',
+    page: 1,
+    totalPages: 1,
+  },
+  api: {
+    apiKey: '69cdb3df76acd21a91bb8d579fd3afd5',
+    apiURL: 'https://api.themoviedb.org/3/',
+  },
 };
 
 // Display 20 most popular movies
@@ -208,6 +218,22 @@ function displayBackgroundImage(type, backgroundPath) {
   }
 }
 
+// search movies/show
+async function search() {
+  const queryString = window.location.search;
+  const urlParam = new URLSearchParams(queryString);
+
+  global.search.type = urlParam.get('type');
+  global.search.term = urlParam.get('search-term');
+
+  if (global.search.term !== '' && global.search.term !== null) {
+    const results = await searchAPIData();
+    console.log(results);
+  } else {
+    showAlert('Please enter a search term');
+  }
+}
+
 //  Display slider movie
 async function displaySlider() {
   const { results } = await fetchAPIData('movie/now_playing');
@@ -217,11 +243,15 @@ async function displaySlider() {
 
     div.classList.add('swiper-slide');
     div.innerHTML = `
-            <a href="movie-details.html?id=${movie.id}">
-              <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" alt="${movie.title}" />
+            <a href="movie-timeoutdetails.html?id=${movie.id}">
+              <img src="https://image.tmdb.org/t/p/w500${
+                movie.poster_path
+              }" alt="${movie.title}" />
             </a>
             <h4 class="swiper-rating">
-              <i class="fas fa-star text-secondary"></i> ${movie.vote_average.toFixed(1)} / 10
+              <i class="fas fa-star text-secondary"></i> ${movie.vote_average.toFixed(
+                1
+              )} / 10
             </h4>`;
 
     document.querySelector('.swiper-wrapper').appendChild(div);
@@ -256,13 +286,31 @@ function initSwiper() {
 
 // Fetch data from TMBD
 async function fetchAPIData(endpoint) {
-  const API_KEY = '69cdb3df76acd21a91bb8d579fd3afd5';
-  const API_URL = 'https://api.themoviedb.org/3/';
+  const API_KEY = global.api.apiKey;
+  const API_URL = global.api.apiURL;
 
   showSpinner();
 
   const response = await fetch(
     `${API_URL}${endpoint}?api_key=${API_KEY}&language=en-US`
+  );
+
+  const data = await response.json();
+
+  hideSpinner();
+
+  return data;
+}
+
+// Make request to search
+async function searchAPIData() {
+  const API_KEY = global.api.apiKey;
+  const API_URL = global.api.apiURL;
+
+  showSpinner();
+
+  const response = await fetch(
+    `${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}`
   );
 
   const data = await response.json();
@@ -297,6 +345,18 @@ function highlightActiveLink() {
   // }
 }
 
+// Show alert
+function showAlert(message, className) {
+  const alertEl = document.createElement('div');
+  alertEl.classList.add('alert', className);
+  alertEl.appendChild(document.createTextNode(message));
+  document.querySelector('#alert').appendChild(alertEl);
+
+  setTimeout(() => {
+    alertEl.remove();
+  }, 3000);
+}
+
 function addCommasToNumber(number) {
   return number.toLocaleString();
 }
@@ -319,7 +379,7 @@ function init() {
       dispayShowDetails();
       break;
     case '/search.html':
-      console.log('search');
+      search();
       break;
   }
 
